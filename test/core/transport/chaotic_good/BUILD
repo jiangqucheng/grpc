@@ -66,6 +66,21 @@ grpc_fuzz_test(
 )
 
 grpc_fuzz_test(
+    name = "serialize_little_endian_test",
+    srcs = ["serialize_little_endian_test.cc"],
+    external_deps = [
+        "gtest",
+        "fuzztest",
+        "fuzztest_main",
+    ],
+    tags = ["no_windows"],
+    deps = [
+        "//:grpc",
+        "//src/core:chaotic_good_serialize_little_endian",
+    ],
+)
+
+grpc_fuzz_test(
     name = "tcp_frame_transport_test",
     srcs = ["tcp_frame_transport_test.cc"],
     external_deps = [
@@ -80,6 +95,7 @@ grpc_fuzz_test(
         "//src/core:inter_activity_latch",
         "//test/core/event_engine/fuzzing_event_engine",
         "//test/core/event_engine/fuzzing_event_engine:fuzzing_event_engine_cc_proto",
+        "//test/core/test_util:postmortem_emit",
     ],
 )
 
@@ -208,6 +224,7 @@ grpc_cc_test(
         "//:parse_address",
         "//:uri",
         "//src/core:channel_args",
+        "//src/core:chaotic_good",
         "//src/core:chaotic_good_connector",
         "//src/core:chaotic_good_server",
         "//src/core:notification",

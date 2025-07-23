@@ -174,7 +174,6 @@ class PythonArtifact:
             environ["PIP"] = "/opt/python/{}/bin/pip".format(self.py_version)
             environ["GRPC_SKIP_PIP_CYTHON_UPGRADE"] = "TRUE"
             if self.arch == "aarch64":
-                environ["GRPC_SKIP_TWINE_CHECK"] = "TRUE"
                 # As we won't strip the binary with auditwheel (see below), strip
                 # it at link time.
                 environ["LDFLAGS"] = "-s"
@@ -202,7 +201,7 @@ class PythonArtifact:
             environ["GRPC_SKIP_PIP_CYTHON_UPGRADE"] = "TRUE"
             environ["GRPC_PYTHON_BUILD_WITH_STATIC_LIBSTDCXX"] = "TRUE"
 
-            if self.arch in ("x86", "aarch64"):
+            if self.arch in ("x86"):
                 environ["GRPC_SKIP_TWINE_CHECK"] = "TRUE"
 
             if self.arch == "aarch64":
@@ -262,6 +261,7 @@ class RubyArtifact:
         self.name = "ruby_native_gem_%s_%s" % (platform, gem_platform)
         self.platform = platform
         self.gem_platform = gem_platform
+        platform_label = self.platform
         self.labels = ["artifact", "ruby", platform, gem_platform]
         if presubmit:
             self.labels.append("presubmit")
@@ -283,7 +283,7 @@ class RubyArtifact:
                 self.gem_platform,
             ],
             use_workspace=True,
-            timeout_seconds=180 * 60,
+            timeout_seconds=240 * 60,
             environ=environ,
         )
 
@@ -479,11 +479,13 @@ def targets():
             PythonArtifact("windows", "x64", "Python312"),
             PythonArtifact("windows", "x64", "Python313", presubmit=True),
             RubyArtifact("linux", "x86-mingw32", presubmit=True),
-            RubyArtifact("linux", "x64-mingw32"),
             RubyArtifact("linux", "x64-mingw-ucrt", presubmit=True),
-            RubyArtifact("linux", "x86_64-linux", presubmit=True),
-            RubyArtifact("linux", "x86-linux"),
-            RubyArtifact("linux", "aarch64-linux", presubmit=True),
+            RubyArtifact("linux", "x86_64-linux-gnu", presubmit=True),
+            RubyArtifact("linux", "x86_64-linux-musl", presubmit=True),
+            RubyArtifact("linux", "x86-linux-gnu", presubmit=True),
+            RubyArtifact("linux", "x86-linux-musl", presubmit=True),
+            RubyArtifact("linux", "aarch64-linux-gnu", presubmit=True),
+            RubyArtifact("linux", "aarch64-linux-musl", presubmit=True),
             RubyArtifact("linux", "x86_64-darwin", presubmit=True),
             RubyArtifact("linux", "arm64-darwin", presubmit=True),
             PHPArtifact("linux", "x64", presubmit=True),

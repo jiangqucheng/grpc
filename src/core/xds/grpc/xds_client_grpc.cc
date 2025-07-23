@@ -161,16 +161,16 @@ class GrpcXdsClient::MetricsReporter final : public XdsMetricsReporter {
                              absl::string_view resource_type,
                              uint64_t num_valid_resources,
                              uint64_t num_invalid_resources) override {
-    xds_client_.stats_plugin_group_.AddCounter(
+    xds_client_.stats_plugin_group_->AddCounter(
         kMetricResourceUpdatesValid, num_valid_resources,
         {xds_client_.key_, xds_server, resource_type}, {});
-    xds_client_.stats_plugin_group_.AddCounter(
+    xds_client_.stats_plugin_group_->AddCounter(
         kMetricResourceUpdatesInvalid, num_invalid_resources,
         {xds_client_.key_, xds_server, resource_type}, {});
   }
 
   void ReportServerFailure(absl::string_view xds_server) override {
-    xds_client_.stats_plugin_group_.AddCounter(
+    xds_client_.stats_plugin_group_->AddCounter(
         kMetricServerFailure, 1, {xds_client_.key_, xds_server}, {});
   }
 
@@ -225,7 +225,7 @@ absl::StatusOr<std::string> GetBootstrapContents(const char* fallback_config) {
       "not defined");
 }
 
-GlobalStatsPluginRegistry::StatsPluginGroup
+std::shared_ptr<GlobalStatsPluginRegistry::StatsPluginGroup>
 GetStatsPluginGroupForKeyAndChannelArgs(absl::string_view key,
                                         const ChannelArgs& channel_args) {
   if (key == GrpcXdsClient::kServerKey) {
@@ -251,6 +251,8 @@ absl::StatusOr<RefCountedPtr<GrpcXdsClient>> GrpcXdsClient::GetOrCreate(
   std::optional<absl::string_view> bootstrap_config = args.GetString(
       GRPC_ARG_TEST_ONLY_DO_NOT_USE_IN_PROD_XDS_BOOTSTRAP_CONFIG);
   if (bootstrap_config.has_value()) {
+    GRPC_TRACE_LOG(xds_client, INFO)
+        << "xDS bootstrap contents: " << *bootstrap_config;
     auto bootstrap = GrpcXdsBootstrap::Create(*bootstrap_config);
     if (!bootstrap.ok()) return bootstrap.status();
     grpc_channel_args* xds_channel_args = args.GetPointer<grpc_channel_args>(
@@ -261,7 +263,8 @@ absl::StatusOr<RefCountedPtr<GrpcXdsClient>> GrpcXdsClient::GetOrCreate(
         MakeRefCounted<GrpcXdsTransportFactory>(channel_args),
         GetStatsPluginGroupForKeyAndChannelArgs(key, args));
   }
-  // Otherwise, use the global instance.
+  // Otherwise, check the global map to see if the XdsClient instance
+  // for this key already exists.
   MutexLock lock(g_mu);
   auto it = g_xds_client_map->find(key);
   if (it != g_xds_client_map->end()) {
@@ -270,7 +273,8 @@ absl::StatusOr<RefCountedPtr<GrpcXdsClient>> GrpcXdsClient::GetOrCreate(
       return xds_client.TakeAsSubclass<GrpcXdsClient>();
     }
   }
-  // Find bootstrap contents.
+  // It doesn't exist, so we'll create it.
+  // First, find bootstrap contents.
   auto bootstrap_contents = GetBootstrapContents(g_fallback_bootstrap_config);
   if (!bootstrap_contents.ok()) return bootstrap_contents.status();
   GRPC_TRACE_LOG(xds_client, INFO)
@@ -309,7 +313,8 @@ GrpcXdsClient::GrpcXdsClient(
     absl::string_view key, std::shared_ptr<GrpcXdsBootstrap> bootstrap,
     const ChannelArgs& args,
     RefCountedPtr<XdsTransportFactory> transport_factory,
-    GlobalStatsPluginRegistry::StatsPluginGroup stats_plugin_group)
+    std::shared_ptr<GlobalStatsPluginRegistry::StatsPluginGroup>
+        stats_plugin_group)
     : XdsClient(
           bootstrap, transport_factory,
           grpc_event_engine::experimental::GetDefaultEventEngine(),
@@ -324,7 +329,7 @@ GrpcXdsClient::GrpcXdsClient(
           DownCast<const GrpcXdsBootstrap&>(this->bootstrap())
               .certificate_providers())),
       stats_plugin_group_(std::move(stats_plugin_group)),
-      registered_metric_callback_(stats_plugin_group_.RegisterCallback(
+      registered_metric_callback_(stats_plugin_group_->RegisterCallback(
           [this](CallbackMetricReporter& reporter) {
             ReportCallbackMetrics(reporter);
           },

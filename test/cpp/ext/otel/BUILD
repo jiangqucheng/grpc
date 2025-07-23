@@ -72,6 +72,52 @@ grpc_cc_test(
 )
 
 grpc_cc_test(
+    name = "otel_plugin_option_test",
+    srcs = [
+        "otel_plugin_option_test.cc",
+    ],
+    external_deps = [
+        "gtest",
+        "otel/api",
+        "otel/sdk/src/metrics",
+    ],
+    tags = [
+        # TODO(b/332369798): Remove after fixing bug
+        "grpc:otel-namespace-calamity",
+    ],
+    deps = [
+        ":otel_test_library",
+        "//:grpc++",
+        "//src/cpp/ext/otel:otel_plugin",
+        "//test/core/promise:test_context",
+        "//test/core/test_util:grpc_test_util",
+    ],
+)
+
+grpc_cc_test(
+    name = "otel_npc_metrics_test",
+    srcs = [
+        "otel_npc_metrics_test.cc",
+    ],
+    external_deps = [
+        "gtest",
+        "otel/api",
+        "otel/sdk/src/metrics",
+    ],
+    tags = [
+        # TODO(b/332369798): Remove after fixing bug
+        "grpc:otel-namespace-calamity",
+    ],
+    deps = [
+        ":otel_test_library",
+        "//:grpc++",
+        "//src/cpp/ext/otel:otel_plugin",
+        "//test/core/promise:test_context",
+        "//test/core/test_util:grpc_test_util",
+    ],
+)
+
+grpc_cc_test(
     name = "grpc_text_map_carrier_test",
     srcs = [
         "grpc_text_map_carrier_test.cc",
@@ -130,6 +176,7 @@ grpc_cc_test(
     deps = [
         ":otel_test_library",
         "//:grpc++",
+        "//src/core:posix_event_engine_poller_posix_default",
         "//src/cpp/ext/otel:otel_plugin",
         "//test/core/promise:test_context",
         "//test/core/test_util:fail_first_call_filter",

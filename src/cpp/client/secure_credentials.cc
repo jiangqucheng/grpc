@@ -46,6 +46,7 @@
 #include "absl/strings/str_join.h"
 #include "src/core/credentials/call/json_util.h"
 #include "src/core/lib/event_engine/default_event_engine.h"
+#include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/util/env.h"
 #include "src/core/util/json/json.h"
 #include "src/core/util/json/json_reader.h"
@@ -85,7 +86,7 @@ std::shared_ptr<WrappedChannelCredentials> WrapChannelCredentials(
 std::shared_ptr<ChannelCredentials> GoogleDefaultCredentials() {
   grpc::internal::GrpcLibrary init;  // To call grpc_init().
   return WrapChannelCredentials(
-      grpc_google_default_credentials_create(nullptr));
+      grpc_google_default_credentials_create(nullptr, nullptr));
 }
 
 std::shared_ptr<CallCredentials> ExternalAccountCredentials(

@@ -36,6 +36,7 @@ grpc_cc_proto_library(
 
 grpc_cc_library(
     name = "fuzzing_common",
+    testonly = True,
     srcs = ["fuzzing_common.cc"],
     hdrs = ["fuzzing_common.h"],
     external_deps = [
@@ -48,6 +49,7 @@ grpc_cc_library(
         "//:gpr",
         "//:grpc",
         "//test/core/event_engine/fuzzing_event_engine",
+        "//test/core/test_util:postmortem_emit",
     ],
 )
 
@@ -100,6 +102,7 @@ grpc_cc_proto_library(
 
 grpc_cc_library(
     name = "network_input",
+    testonly = True,
     srcs = ["network_input.cc"],
     hdrs = ["network_input.h"],
     external_deps = ["absl/log:log"],
